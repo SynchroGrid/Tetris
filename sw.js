@@ -1,5 +1,5 @@
 // Service worker for Tetris PWA — caches files so the game works offline.
-const CACHE = 'tetris-v2';
+const CACHE = 'tetris-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -38,4 +38,3 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
-

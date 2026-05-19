@@ -455,6 +455,8 @@ const Music = (() => {
     return 440 * Math.pow(2, (m - 69) / 12);
   }
 
+  let unlocked = false;
+
   function ensureCtx() {
     if (!actx) {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -465,6 +467,39 @@ const Music = (() => {
       masterGain.connect(actx.destination);
     }
     return actx;
+  }
+
+  // iOS Safari requires audio to be "unlocked" by playing a silent buffer
+  // synchronously inside a user gesture. Once unlocked, future scheduling works.
+  function unlock() {
+    if (unlocked || !actx) return;
+    try {
+      const buf = actx.createBuffer(1, 1, 22050);
+      const src = actx.createBufferSource();
+      src.buffer = buf;
+      src.connect(actx.destination);
+      src.start(0);
+      unlocked = true;
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function start() {
+    const ctx = ensureCtx();
+    if (!ctx) return;
+    unlock();
+    // Resume returns a Promise on iOS; we wait for it before scheduling notes.
+    const proceed = () => {
+      if (running) return;
+      running = true;
+      scheduleLoop();
+    };
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(proceed).catch(proceed);
+    } else {
+      proceed();
+    }
   }
 
   function playNote(midi, durSec, when, type, gain) {
@@ -493,7 +528,7 @@ const Music = (() => {
     if (!running || !actx) return;
     const loopBeats = Math.max(totalBeats(MELODY), totalBeats(BASS));
     const loopSec = loopBeats * beatSec;
-    const startAt = actx.currentTime + 0.05;
+    const startAt = actx.currentTime + 0.15;
 
     let t = startAt;
     for (const [m, b] of MELODY) {
@@ -508,15 +543,6 @@ const Music = (() => {
 
     // schedule next iteration just before this one ends
     timer = setTimeout(scheduleLoop, (loopSec - 0.1) * 1000);
-  }
-
-  function start() {
-    const ctx = ensureCtx();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-    if (running) return;
-    running = true;
-    scheduleLoop();
   }
 
   function stop() {
