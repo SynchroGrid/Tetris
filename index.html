@@ -206,62 +206,47 @@
   }
   .overlay button:active { transform: translateY(1px); }
 
-  .controls {
+  .hint {
     width: 100%;
     max-width: 420px;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 8px;
-  }
-  .btn {
-    background: linear-gradient(180deg, var(--panel-2) 0%, #0e0e1a 100%);
-    border: 1px solid var(--grid-line);
-    color: var(--ink);
-    padding: 14px 8px;
-    border-radius: 8px;
-    font-family: 'Georgia', serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.15em;
+    text-align: center;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    cursor: pointer;
-    box-shadow: 0 4px 12px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.03);
-    transition: transform 0.05s ease, background 0.1s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 48px;
+    padding: 6px 8px;
+    line-height: 1.8;
   }
-  .btn:active {
-    transform: translateY(1px);
-    background: linear-gradient(180deg, #1a1a2a 0%, #08080f 100%);
+  .hint b {
+    color: var(--ink);
+    font-weight: 600;
   }
-  .btn.wide { grid-column: span 1; }
-  .btn .ico { font-size: 18px; line-height: 1; }
-  .btn.primary {
-    background: linear-gradient(180deg, #2a2238 0%, #1a1428 100%);
-    color: var(--accent);
-    border-color: rgba(245, 215, 110, 0.3);
+  .hint .sep {
+    color: var(--grid-line);
+    margin: 0 6px;
   }
 
-  .row {
-    display: flex;
-    gap: 8px;
-    width: 100%;
+  /* Subtle visual hint that the board is the control surface */
+  .board-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgba(245, 215, 110, 0.04);
   }
-  .row .btn { flex: 1; }
 
   @media (max-height: 720px) {
     .panel { padding: 6px; }
     .panel .label { margin-bottom: 4px; }
     .stat .value { font-size: 18px; }
     .logo { font-size: 16px; }
-    .btn { padding: 10px 6px; min-height: 42px; font-size: 10px; }
+    .hint { font-size: 9px; }
   }
   @media (max-width: 360px) {
     .side { width: 64px; }
     .play-area { gap: 6px; }
+    .hint { font-size: 9px; }
   }
 </style>
 </head>
@@ -309,13 +294,8 @@
     </div>
   </div>
 
-  <div class="controls">
-    <button class="btn" data-action="hold"><span>Hold</span></button>
-    <button class="btn primary" data-action="rotate"><span class="ico">↻</span></button>
-    <button class="btn" data-action="pause"><span>Pause</span></button>
-    <button class="btn" data-action="left"><span class="ico">◀</span></button>
-    <button class="btn" data-action="down"><span class="ico">▼</span></button>
-    <button class="btn" data-action="right"><span class="ico">▶</span></button>
+  <div class="hint">
+    <b>Tap</b> rotate <span class="sep">·</span> <b>Swipe</b> move <span class="sep">·</span> <b>Flick ↓</b> drop <span class="sep">·</span> <b>Hold</b> stash <span class="sep">·</span> <b>2-finger tap</b> pause
   </div>
 </div>
 
@@ -771,76 +751,155 @@ overlayBtn.addEventListener('click', () => {
   else pauseGame();
 });
 
-// ============== Input ==============
-document.querySelectorAll('.btn[data-action]').forEach(btn => {
-  const action = btn.dataset.action;
-  let holdTimer = null;
-  let repeatTimer = null;
+// ============== Input (Gestures) ==============
+//
+// Gesture scheme:
+//   - tap (short, small movement)          -> rotate
+//   - long-press (held > 350ms, no drag)   -> hold piece
+//   - drag horizontally                    -> move piece cell-by-cell as finger moves
+//   - drag downward                        -> soft drop, continuous while dragging down
+//   - fast upward flick                    -> hard drop
+//   - 2-finger tap                         -> pause
+//
+// The whole document is the input surface so users can swipe anywhere comfortably.
 
-  const doAction = () => {
-    if (!running || gameOver) return;
-    if (paused && action !== 'pause') return;
-    switch (action) {
-      case 'left': move(-1, 0); draw(); break;
-      case 'right': move(1, 0); draw(); break;
-      case 'down': softDrop(); draw(); break;
-      case 'rotate': rotate(); draw(); break;
-      case 'hold': hold(); draw(); break;
-      case 'pause': pauseGame(); break;
-    }
-  };
+const LONG_PRESS_MS = 350;
+const TAP_MAX_DIST = 14;          // px of movement still considered a tap
+const TAP_MAX_TIME = 250;         // ms
+const SWIPE_UP_VELOCITY = 0.9;    // px/ms upward velocity = hard drop
+const SWIPE_UP_MIN_DIST = 60;     // require some travel too
+const DRAG_CELL_PX = 22;          // px of horizontal drag per move
+const SOFT_DROP_PX = 22;          // px of downward drag per soft-drop step
 
-  const start = (e) => {
+let gesture = null;
+
+function onGameTouchStart(e) {
+  if (e.touches.length === 2) {
+    // two-finger tap -> pause
     e.preventDefault();
-    doAction();
-    if (action === 'left' || action === 'right' || action === 'down') {
-      holdTimer = setTimeout(() => {
-        repeatTimer = setInterval(doAction, 70);
-      }, 180);
-    }
+    if (running && !gameOver) pauseGame();
+    gesture = null;
+    return;
+  }
+  if (!running || gameOver || paused) return;
+  if (e.touches.length !== 1) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  gesture = {
+    startX: t.clientX,
+    startY: t.clientY,
+    lastX: t.clientX,
+    lastY: t.clientY,
+    accumX: 0,
+    accumY: 0,
+    startTime: Date.now(),
+    moved: false,
+    didDrag: false,
+    didHardDrop: false,
+    longPressFired: false,
+    longPressTimer: setTimeout(() => {
+      if (!gesture) return;
+      if (!gesture.moved) {
+        gesture.longPressFired = true;
+        hold();
+        draw();
+      }
+    }, LONG_PRESS_MS),
   };
-  const end = (e) => {
-    e.preventDefault();
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; }
-  };
+}
 
-  btn.addEventListener('touchstart', start, { passive: false });
-  btn.addEventListener('touchend', end, { passive: false });
-  btn.addEventListener('touchcancel', end, { passive: false });
-  btn.addEventListener('mousedown', start);
-  btn.addEventListener('mouseup', end);
-  btn.addEventListener('mouseleave', end);
-});
-
-// Swipe down on board = hard drop, double tap = rotate
-let touchStart = null;
-boardCanvas.addEventListener('touchstart', (e) => {
+function onGameTouchMove(e) {
+  if (!gesture) return;
   if (!running || gameOver || paused) return;
   e.preventDefault();
   const t = e.touches[0];
-  touchStart = { x: t.clientX, y: t.clientY, time: Date.now() };
-}, { passive: false });
+  const dxTotal = t.clientX - gesture.startX;
+  const dyTotal = t.clientY - gesture.startY;
 
-boardCanvas.addEventListener('touchend', (e) => {
-  if (!running || gameOver || paused || !touchStart) return;
+  if (Math.abs(dxTotal) > TAP_MAX_DIST || Math.abs(dyTotal) > TAP_MAX_DIST) {
+    gesture.moved = true;
+    if (gesture.longPressTimer) {
+      clearTimeout(gesture.longPressTimer);
+      gesture.longPressTimer = null;
+    }
+  }
+
+  const dx = t.clientX - gesture.lastX;
+  const dy = t.clientY - gesture.lastY;
+  gesture.lastX = t.clientX;
+  gesture.lastY = t.clientY;
+  gesture.accumX += dx;
+  gesture.accumY += dy;
+
+  // horizontal cell-by-cell movement
+  while (gesture.accumX <= -DRAG_CELL_PX) {
+    move(-1, 0);
+    gesture.accumX += DRAG_CELL_PX;
+    gesture.didDrag = true;
+  }
+  while (gesture.accumX >= DRAG_CELL_PX) {
+    move(1, 0);
+    gesture.accumX -= DRAG_CELL_PX;
+    gesture.didDrag = true;
+  }
+  // downward soft drop on drag
+  while (gesture.accumY >= SOFT_DROP_PX) {
+    softDrop();
+    gesture.accumY -= SOFT_DROP_PX;
+    gesture.didDrag = true;
+  }
+  if (gesture.didDrag) draw();
+}
+
+function onGameTouchEnd(e) {
+  if (!gesture) return;
+  if (gesture.longPressTimer) {
+    clearTimeout(gesture.longPressTimer);
+    gesture.longPressTimer = null;
+  }
+  if (!running || gameOver || paused) {
+    gesture = null;
+    return;
+  }
   e.preventDefault();
-  const t = e.changedTouches[0];
-  const dx = t.clientX - touchStart.x;
-  const dy = t.clientY - touchStart.y;
-  const dt = Date.now() - touchStart.time;
-  const dist = Math.sqrt(dx*dx + dy*dy);
-  if (dt < 250 && dist < 12) {
-    // tap = rotate
-    rotate();
-    draw();
-  } else if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
-    // swipe down = hard drop
+  const dt = Date.now() - gesture.startTime;
+  const dxTotal = gesture.lastX - gesture.startX;
+  const dyTotal = gesture.lastY - gesture.startY;
+  const dist = Math.hypot(dxTotal, dyTotal);
+
+  // fast upward flick -> hard drop
+  const vy = dyTotal / Math.max(dt, 1);
+  if (dyTotal < -SWIPE_UP_MIN_DIST && vy < -SWIPE_UP_VELOCITY && Math.abs(dyTotal) > Math.abs(dxTotal)) {
     hardDrop();
     draw();
+    gesture = null;
+    return;
   }
-  touchStart = null;
-}, { passive: false });
+
+  // tap (no drag, no long-press fired) -> rotate
+  if (!gesture.moved && !gesture.longPressFired && dt < TAP_MAX_TIME && dist < TAP_MAX_DIST) {
+    rotate();
+    draw();
+  }
+  gesture = null;
+}
+
+function onGameTouchCancel() {
+  if (gesture && gesture.longPressTimer) {
+    clearTimeout(gesture.longPressTimer);
+  }
+  gesture = null;
+}
+
+// Attach to document so users can swipe anywhere on the screen (except on the overlay button)
+document.addEventListener('touchstart', onGameTouchStart, { passive: false });
+document.addEventListener('touchmove', onGameTouchMove, { passive: false });
+document.addEventListener('touchend', onGameTouchEnd, { passive: false });
+document.addEventListener('touchcancel', onGameTouchCancel, { passive: false });
+
+// Make sure the overlay button still works without being eaten by the global gesture handler
+overlayBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); });
+overlayBtn.addEventListener('touchend', (e) => { e.stopPropagation(); });
 
 // Keyboard for desktop testing
 document.addEventListener('keydown', (e) => {
@@ -874,3 +933,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
