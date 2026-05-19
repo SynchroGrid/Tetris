@@ -217,10 +217,6 @@
     padding: 6px 8px;
     line-height: 1.8;
   }
-
-  @media (hover: hover) and (pointer: fine) {
-    .hint { display: none; }
-  }
   .hint b {
     color: var(--ink);
     font-weight: 600;
@@ -229,6 +225,36 @@
     color: var(--grid-line);
     margin: 0 6px;
   }
+
+  .toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    padding: 4px 0;
+  }
+  .tool-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--grid-line);
+    color: var(--ink);
+    font-size: 20px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.04);
+    transition: transform 0.05s ease, color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+    font-family: inherit;
+  }
+  .tool-btn:active { transform: translateY(1px) scale(0.96); }
+  .tool-btn.muted { color: var(--ink-dim); opacity: 0.65; }
+  .tool-btn.active { color: var(--accent); }
 
   /* Subtle visual hint that the board is the control surface */
   .board-wrap::after {
@@ -299,7 +325,12 @@
   </div>
 
   <div class="hint">
-    <b>Tap</b> rotate <span class="sep">·</span> <b>Swipe</b> move <span class="sep">·</span> <b>Flick ↓</b> drop <span class="sep">·</span> <b>Hold</b> stash <span class="sep">·</span> <b>2-finger tap</b> pause
+    <b>Tap</b> rotate <span class="sep">·</span> <b>Swipe</b> move <span class="sep">·</span> <b>Flick ↓</b> drop <span class="sep">·</span> <b>Hold</b> stash
+  </div>
+
+  <div class="toolbar">
+    <button class="tool-btn" id="muteBtn" aria-label="Toggle sound">🔊</button>
+    <button class="tool-btn" id="pauseBtn" aria-label="Pause">⏸</button>
   </div>
 </div>
 
@@ -362,6 +393,160 @@ const SHAPES = {
 };
 
 const PIECE_KEYS = ['I','O','T','S','Z','J','L'];
+
+// ============== Audio (Korobeiniki, Web Audio API) ==============
+//
+// Korobeiniki ("Korobushka") is a public-domain Russian folk song;
+// this is an original arrangement generated entirely in code, no copyrighted
+// recordings or arrangements involved.
+//
+// We synthesize a melody (square wave, like an old handheld) plus a simple
+// bass line (triangle wave), looped indefinitely.
+
+const Music = (() => {
+  let actx = null;
+  let masterGain = null;
+  let muted = localStorage.getItem('tetris_muted') === '1';
+  let running = false;
+  let timer = null;
+
+  // Notes: semitone offsets from A4 (440Hz). Each entry is [semitone, beats].
+  // Tempo: 1 beat = quarter note. We'll set BPM below.
+  // Negative number = rest.
+  const REST = null;
+
+  // Korobeiniki melody (public-domain folk tune), in E minor.
+  // Each entry [midiNote, durationInBeats]. Length: 16 bars of 2/4.
+  const MELODY = [
+    [76,1],[71,0.5],[72,0.5],[74,1],[72,0.5],[71,0.5],
+    [69,1],[69,0.5],[72,0.5],[76,1],[74,0.5],[72,0.5],
+    [71,1.5],[72,0.5],[74,1],[76,1],
+    [72,1],[69,1],[69,1],[REST,1],
+    [74,1],[77,0.5],[81,0.5],[79,0.5],[77,0.5],
+    [76,1.5],[72,0.5],[76,1],[74,0.5],[72,0.5],
+    [71,1],[71,0.5],[72,0.5],[74,1],[76,1],
+    [72,1],[69,1],[69,1],[REST,1],
+    // second half (lower repeat / variation)
+    [71,2],[72,2],
+    [68,2],[69,2],
+    [67,2],[64,2],
+    [69,1],[71,1],[72,1],[74,1],
+    [76,2],[72,2],
+    [69,2],[69,2],
+    [REST,2],[REST,2],
+  ];
+
+  // Simple bass line: root notes per bar, two per bar (4 beats each? we use 2/4 so 1 per bar).
+  // Match length to melody bars approximately.
+  const BASS = [
+    [40,2],[40,2],[40,2],[40,2],
+    [45,2],[45,2],[40,2],[40,2],
+    [40,2],[40,2],[40,2],[40,2],
+    [45,2],[45,2],[40,2],[40,2],
+    [43,2],[43,2],[36,2],[36,2],
+    [38,2],[35,2],[40,2],[40,2],
+    [REST,2],[REST,2],
+  ];
+
+  const BPM = 150;
+  const beatSec = 60 / BPM;
+
+  function midiToFreq(m) {
+    return 440 * Math.pow(2, (m - 69) / 12);
+  }
+
+  function ensureCtx() {
+    if (!actx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      actx = new Ctx();
+      masterGain = actx.createGain();
+      masterGain.gain.value = muted ? 0 : 0.18;
+      masterGain.connect(actx.destination);
+    }
+    return actx;
+  }
+
+  function playNote(midi, durSec, when, type, gain) {
+    if (midi == null) return; // rest
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    osc.type = type;
+    osc.frequency.value = midiToFreq(midi);
+    // tiny envelope to avoid clicks
+    const atk = 0.005;
+    const rel = Math.min(0.08, durSec * 0.3);
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(gain, when + atk);
+    g.gain.setValueAtTime(gain, when + Math.max(atk, durSec - rel));
+    g.gain.linearRampToValueAtTime(0, when + durSec);
+    osc.connect(g).connect(masterGain);
+    osc.start(when);
+    osc.stop(when + durSec + 0.02);
+  }
+
+  function totalBeats(track) {
+    return track.reduce((s, [, b]) => s + b, 0);
+  }
+
+  function scheduleLoop() {
+    if (!running || !actx) return;
+    const loopBeats = Math.max(totalBeats(MELODY), totalBeats(BASS));
+    const loopSec = loopBeats * beatSec;
+    const startAt = actx.currentTime + 0.05;
+
+    let t = startAt;
+    for (const [m, b] of MELODY) {
+      playNote(m, b * beatSec * 0.95, t, 'square', 0.22);
+      t += b * beatSec;
+    }
+    t = startAt;
+    for (const [m, b] of BASS) {
+      playNote(m, b * beatSec * 0.9, t, 'triangle', 0.14);
+      t += b * beatSec;
+    }
+
+    // schedule next iteration just before this one ends
+    timer = setTimeout(scheduleLoop, (loopSec - 0.1) * 1000);
+  }
+
+  function start() {
+    const ctx = ensureCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume();
+    if (running) return;
+    running = true;
+    scheduleLoop();
+  }
+
+  function stop() {
+    running = false;
+    if (timer) { clearTimeout(timer); timer = null; }
+    // We can't easily cancel already-scheduled notes; instead duck volume.
+    if (masterGain && actx) {
+      masterGain.gain.cancelScheduledValues(actx.currentTime);
+      masterGain.gain.setValueAtTime(masterGain.gain.value, actx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0, actx.currentTime + 0.1);
+    }
+  }
+
+  function setMuted(m) {
+    muted = m;
+    localStorage.setItem('tetris_muted', m ? '1' : '0');
+    if (masterGain && actx) {
+      masterGain.gain.cancelScheduledValues(actx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(m ? 0 : 0.18, actx.currentTime + 0.1);
+    }
+  }
+
+  function isMuted() { return muted; }
+
+  // Pause/resume just toggle the context — keeps queued notes intact.
+  function pause() { if (actx && actx.state === 'running') actx.suspend(); }
+  function resume() { if (actx && actx.state === 'suspended') actx.resume(); }
+
+  return { start, stop, setMuted, isMuted, pause, resume };
+})();
 
 const boardCanvas = document.getElementById('board');
 const ctx = boardCanvas.getContext('2d');
@@ -720,12 +905,16 @@ function startGame() {
   updateHud();
   drawSide();
   hideOverlay();
+  Music.start();
+  updatePauseBtn();
   requestAnimationFrame(loop);
 }
 
 function endGame() {
   gameOver = true;
   running = false;
+  Music.stop();
+  updatePauseBtn();
   showOverlay('Game Over', `Score ${score}`, 'Play again');
 }
 
@@ -733,11 +922,14 @@ function pauseGame() {
   if (gameOver) return;
   paused = !paused;
   if (paused) {
+    Music.pause();
     showOverlay('Paused', `Score ${score}`, 'Resume');
   } else {
+    Music.resume();
     hideOverlay();
     lastTime = performance.now();
   }
+  updatePauseBtn();
 }
 
 function showOverlay(title, text, btn) {
@@ -754,6 +946,49 @@ overlayBtn.addEventListener('click', () => {
   if (gameOver || !running) startGame();
   else pauseGame();
 });
+
+// Toolbar buttons
+const muteBtn = document.getElementById('muteBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+
+function updateMuteBtn() {
+  if (Music.isMuted()) {
+    muteBtn.textContent = '🔇';
+    muteBtn.classList.add('muted');
+  } else {
+    muteBtn.textContent = '🔊';
+    muteBtn.classList.remove('muted');
+  }
+}
+function updatePauseBtn() {
+  if (paused) {
+    pauseBtn.textContent = '▶';
+    pauseBtn.classList.add('active');
+  } else {
+    pauseBtn.textContent = '⏸';
+    pauseBtn.classList.remove('active');
+  }
+}
+
+muteBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  Music.setMuted(!Music.isMuted());
+  updateMuteBtn();
+});
+// Prevent gesture handler from eating button taps
+['touchstart','touchend','touchmove'].forEach(ev => {
+  muteBtn.addEventListener(ev, e => e.stopPropagation());
+  pauseBtn.addEventListener(ev, e => e.stopPropagation());
+});
+
+pauseBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!running || gameOver) return;
+  pauseGame();
+});
+
+updateMuteBtn();
+updatePauseBtn();
 
 // ============== Input (Gestures) ==============
 //
@@ -937,4 +1172,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
