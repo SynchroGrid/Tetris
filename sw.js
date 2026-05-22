@@ -1,5 +1,5 @@
 // Service worker for Tetris PWA — caches files so the game works offline.
-const CACHE = 'tetris-v4';
+const CACHE = 'tetris-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -24,12 +24,13 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // Let cross-origin requests (Firebase CDN, Firestore API, etc.) pass straight to network.
+  if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(resp => {
-        // Only cache same-origin GETs
-        if (resp.ok && new URL(e.request.url).origin === location.origin) {
+        if (resp.ok) {
           const clone = resp.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
