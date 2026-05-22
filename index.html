@@ -256,6 +256,195 @@
   .tool-btn.muted { color: var(--ink-dim); opacity: 0.65; }
   .tool-btn.active { color: var(--accent); }
 
+  /* ===== Modal screens (username, leaderboard) ===== */
+  .modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 12, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+    padding: 24px;
+  }
+  .modal.show { display: flex; }
+  .modal-card {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--grid-line);
+    border-radius: 10px;
+    padding: 24px 22px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .modal-card h2 {
+    margin: 0 0 6px;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 26px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+  .modal-card p {
+    margin: 0 0 18px;
+    color: var(--ink-dim);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .modal-card input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--grid-line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    color: var(--ink);
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    text-align: center;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .modal-card input[type="text"]:focus {
+    border-color: rgba(245, 215, 110, 0.5);
+    box-shadow: 0 0 0 3px rgba(245, 215, 110, 0.1);
+  }
+  .modal-card .field-info {
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-align: center;
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+    min-height: 16px;
+  }
+  .modal-card .field-info.error { color: #e8615f; }
+  .modal-card .primary-btn {
+    width: 100%;
+    margin-top: 16px;
+    background: var(--accent);
+    color: #1a1410;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: 'Georgia', serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(245, 215, 110, 0.25);
+  }
+  .modal-card .primary-btn:disabled {
+    background: var(--panel-2);
+    color: var(--ink-dim);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .modal-card .ghost-btn {
+    width: 100%;
+    margin-top: 8px;
+    background: transparent;
+    color: var(--ink-dim);
+    border: 1px solid var(--grid-line);
+    padding: 10px;
+    border-radius: 6px;
+    font-family: 'Georgia', serif;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* ===== Leaderboard ===== */
+  .lb-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--grid-line);
+    font-size: 14px;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank {
+    color: var(--ink-dim);
+    font-weight: 700;
+    text-align: center;
+    font-size: 13px;
+  }
+  .lb-row.gold .lb-rank { color: var(--accent); }
+  .lb-row.silver .lb-rank { color: #c8c8d8; }
+  .lb-row.bronze .lb-rank { color: #cd7f32; }
+  .lb-name {
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lb-row.you {
+    background: rgba(245, 215, 110, 0.06);
+    border-radius: 4px;
+  }
+  .lb-row.you .lb-name { color: var(--accent); font-weight: 600; }
+  .lb-score {
+    color: var(--ink);
+    font-weight: 700;
+    font-family: 'Georgia', serif;
+    text-align: right;
+  }
+  .lb-empty {
+    text-align: center;
+    color: var(--ink-dim);
+    padding: 30px 0;
+    font-size: 13px;
+  }
+
+  /* ===== Welcome / header tweaks ===== */
+  .greeting {
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-right: 8px;
+  }
+  .greeting b { color: var(--ink); font-weight: 600; }
+
+  .scores {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .score-pill {
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .score-pill b { color: var(--ink); font-weight: 600; margin-left: 4px; letter-spacing: 0.05em; }
+  .score-pill.global b { color: var(--accent); }
+
+  .settings-icon {
+    background: none;
+    border: none;
+    color: var(--ink-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+  }
+  .settings-icon:active { color: var(--ink); }
+
   /* Subtle visual hint that the board is the control surface */
   .board-wrap::after {
     content: '';
@@ -284,8 +473,15 @@
 <div class="app">
   <header>
     <div class="logo">Tetris</div>
-    <div class="high">High <b id="highScore">0</b></div>
+    <div class="scores">
+      <span class="greeting">Hi <b id="greetingName">…</b></span>
+      <button class="settings-icon" id="settingsBtn" aria-label="Settings">⚙</button>
+    </div>
   </header>
+  <div class="scores" style="width:100%;justify-content:space-between;padding:0 4px;">
+    <span class="score-pill">Local <b id="highScore">0</b></span>
+    <span class="score-pill global">🌐 <b id="globalScore">—</b></span>
+  </div>
 
   <div class="play-area">
     <div class="side">
@@ -331,6 +527,29 @@
   <div class="toolbar">
     <button class="tool-btn" id="muteBtn" aria-label="Toggle sound">🔊</button>
     <button class="tool-btn" id="pauseBtn" aria-label="Pause">⏸</button>
+    <button class="tool-btn" id="leaderboardBtn" aria-label="Leaderboard">🏆</button>
+  </div>
+</div>
+
+<!-- Username modal -->
+<div class="modal" id="usernameModal">
+  <div class="modal-card">
+    <h2 id="usernameTitle">Welcome</h2>
+    <p id="usernameSubtitle">Pick a name for the leaderboard</p>
+    <input type="text" id="usernameInput" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Your name" />
+    <div class="field-info" id="usernameInfo">8–20 characters</div>
+    <button class="primary-btn" id="usernameSave" disabled>Continue</button>
+    <button class="ghost-btn" id="usernameCancel" style="display:none;">Cancel</button>
+  </div>
+</div>
+
+<!-- Leaderboard modal -->
+<div class="modal" id="leaderboardModal">
+  <div class="modal-card">
+    <h2>Top 10</h2>
+    <p id="lbStatus">Loading…</p>
+    <ol class="lb-list" id="lbList"></ol>
+    <button class="ghost-btn" id="lbClose">Close</button>
   </div>
 </div>
 
@@ -456,6 +675,8 @@ const Music = (() => {
   }
 
   let unlocked = false;
+  let generation = 0;       // bumps on every start/stop, invalidates in-flight callbacks
+  let activeNotes = [];     // currently-scheduled oscillator nodes, so we can kill them
 
   function ensureCtx() {
     if (!actx) {
@@ -486,14 +707,21 @@ const Music = (() => {
   }
 
   function start() {
+    if (running) return;   // already playing — do nothing, don't stack
     const ctx = ensureCtx();
     if (!ctx) return;
     unlock();
-    // Resume returns a Promise on iOS; we wait for it before scheduling notes.
+    const myGen = ++generation;
+    // Make sure gain is back up (stop() ramps it to 0)
+    if (masterGain) {
+      masterGain.gain.cancelScheduledValues(actx.currentTime);
+      masterGain.gain.setValueAtTime(muted ? 0 : 0.18, actx.currentTime);
+    }
     const proceed = () => {
+      if (myGen !== generation) return; // another start/stop happened — bail
       if (running) return;
       running = true;
-      scheduleLoop();
+      scheduleLoop(myGen);
     };
     if (ctx.state === 'suspended') {
       ctx.resume().then(proceed).catch(proceed);
@@ -518,13 +746,20 @@ const Music = (() => {
     osc.connect(g).connect(masterGain);
     osc.start(when);
     osc.stop(when + durSec + 0.02);
+    activeNotes.push(osc);
+    // cleanup on natural end
+    osc.onended = () => {
+      const i = activeNotes.indexOf(osc);
+      if (i >= 0) activeNotes.splice(i, 1);
+    };
   }
 
   function totalBeats(track) {
     return track.reduce((s, [, b]) => s + b, 0);
   }
 
-  function scheduleLoop() {
+  function scheduleLoop(myGen) {
+    if (myGen !== generation) return; // stale callback, abort
     if (!running || !actx) return;
     const loopBeats = Math.max(totalBeats(MELODY), totalBeats(BASS));
     const loopSec = loopBeats * beatSec;
@@ -542,17 +777,26 @@ const Music = (() => {
     }
 
     // schedule next iteration just before this one ends
-    timer = setTimeout(scheduleLoop, (loopSec - 0.1) * 1000);
+    timer = setTimeout(() => scheduleLoop(myGen), (loopSec - 0.1) * 1000);
+  }
+
+  function killAllNotes() {
+    // Stop every scheduled oscillator immediately
+    const now = actx ? actx.currentTime : 0;
+    for (const osc of activeNotes) {
+      try { osc.stop(now); } catch (e) {}
+    }
+    activeNotes = [];
   }
 
   function stop() {
     running = false;
+    generation++; // any in-flight scheduleLoop callback is now stale
     if (timer) { clearTimeout(timer); timer = null; }
-    // We can't easily cancel already-scheduled notes; instead duck volume.
+    killAllNotes();
     if (masterGain && actx) {
       masterGain.gain.cancelScheduledValues(actx.currentTime);
-      masterGain.gain.setValueAtTime(masterGain.gain.value, actx.currentTime);
-      masterGain.gain.linearRampToValueAtTime(0, actx.currentTime + 0.1);
+      masterGain.gain.setValueAtTime(0, actx.currentTime);
     }
   }
 
@@ -572,6 +816,119 @@ const Music = (() => {
   function resume() { if (actx && actx.state === 'suspended') actx.resume(); }
 
   return { start, stop, setMuted, isMuted, pause, resume };
+})();
+
+// ============== User (local profile) ==============
+const User = (() => {
+  let name = localStorage.getItem('tetris_user') || '';
+  const MIN = 8;
+  const MAX = 20;
+
+  function get() { return name; }
+  function set(newName) {
+    name = newName.trim().slice(0, MAX);
+    localStorage.setItem('tetris_user', name);
+  }
+  function isValid(candidate) {
+    const trimmed = candidate.trim();
+    if (trimmed.length < MIN || trimmed.length > MAX) return false;
+    // Allow letters, numbers, spaces, basic punctuation
+    return /^[\w\s\-_.'!?]+$/.test(trimmed);
+  }
+  function hasName() { return name.length >= MIN; }
+
+  return { get, set, isValid, hasName, MIN, MAX };
+})();
+
+// ============== Leaderboard (Firebase Firestore) ==============
+const Leaderboard = (() => {
+  // Firebase config — safe to be in client code; security comes from Firestore rules.
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmuohPUa3i_AfALQgg72V2zaUU0l89ucA",
+    authDomain: "tetris-950da.firebaseapp.com",
+    projectId: "tetris-950da",
+    storageBucket: "tetris-950da.firebasestorage.app",
+    messagingSenderId: "544247229964",
+    appId: "1:544247229964:web:ee71f4a81f3a3b76e28829"
+  };
+
+  let app = null, db = null, ready = false;
+  let cachedTop = [];        // last fetched top 10
+  let cachedAt = 0;          // timestamp of last fetch
+  const CACHE_MS = 30_000;   // re-fetch every 30s at most
+
+  // Dynamically load the Firebase SDK modules. We use the v10 modular SDK over CDN.
+  async function init() {
+    if (ready) return true;
+    try {
+      const fb = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js');
+      const fs = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+      app = fb.initializeApp(firebaseConfig);
+      db = fs.getFirestore(app);
+      // expose firestore functions for later use
+      Leaderboard._fs = fs;
+      ready = true;
+      return true;
+    } catch (e) {
+      console.warn('Firebase init failed:', e);
+      return false;
+    }
+  }
+
+  async function fetchTop(limit = 10, force = false) {
+    if (!force && Date.now() - cachedAt < CACHE_MS && cachedTop.length) return cachedTop;
+    const ok = await init();
+    if (!ok) return [];
+    try {
+      const { collection, query, orderBy, limit: qLimit, getDocs } = Leaderboard._fs;
+      const q = query(
+        collection(db, 'scores'),
+        orderBy('score', 'desc'),
+        qLimit(limit)
+      );
+      const snap = await getDocs(q);
+      const rows = [];
+      snap.forEach(doc => {
+        const d = doc.data();
+        rows.push({
+          id: doc.id,
+          name: d.name || 'anon',
+          score: d.score || 0,
+          createdAt: d.createdAt || null
+        });
+      });
+      cachedTop = rows;
+      cachedAt = Date.now();
+      return rows;
+    } catch (e) {
+      console.warn('Leaderboard fetch failed:', e);
+      return cachedTop; // fall back to whatever we had
+    }
+  }
+
+  async function submit(name, score) {
+    const ok = await init();
+    if (!ok) return false;
+    try {
+      const { collection, addDoc, serverTimestamp } = Leaderboard._fs;
+      await addDoc(collection(db, 'scores'), {
+        name: String(name).slice(0, 20),
+        score: Math.max(0, Math.min(9999999, Math.floor(score))),
+        createdAt: serverTimestamp()
+      });
+      cachedAt = 0; // invalidate cache so next fetch is fresh
+      return true;
+    } catch (e) {
+      console.warn('Leaderboard submit failed:', e);
+      return false;
+    }
+  }
+
+  function getGlobalTopFromCache() {
+    return cachedTop[0] || null;
+  }
+
+  return { init, fetchTop, submit, getGlobalTopFromCache };
 })();
 
 const boardCanvas = document.getElementById('board');
@@ -598,6 +955,8 @@ let paused = false;
 let gameOver = false;
 let highScore = parseInt(localStorage.getItem('tetris_high') || '0', 10);
 highEl.textContent = highScore;
+let highScoreAtStart = highScore;  // remember to detect a fresh personal best on game end
+let newPersonalBest = false;
 
 function emptyGrid() {
   return Array.from({length: ROWS}, () => Array(COLS).fill(null));
@@ -695,6 +1054,7 @@ function updateHud() {
     highScore = score;
     localStorage.setItem('tetris_high', String(highScore));
     highEl.textContent = highScore;
+    if (score > highScoreAtStart) newPersonalBest = true;
   }
 }
 
@@ -931,6 +1291,8 @@ function startGame() {
   updateHud();
   drawSide();
   hideOverlay();
+  highScoreAtStart = highScore;
+  newPersonalBest = false;
   Music.start();
   updatePauseBtn();
   requestAnimationFrame(loop);
@@ -941,7 +1303,27 @@ function endGame() {
   running = false;
   Music.stop();
   updatePauseBtn();
-  showOverlay('Game Over', `Score ${score}`, 'Play again');
+
+  // If this game produced a personal best, upload to Firebase
+  let titleMsg = 'Game Over';
+  let subMsg = `Score ${score}`;
+  if (newPersonalBest && User.hasName()) {
+    titleMsg = 'New Best!';
+    subMsg = `${score} — uploading…`;
+    showOverlay(titleMsg, subMsg, 'Play again');
+    Leaderboard.submit(User.get(), score).then(ok => {
+      if (gameOver) {
+        // Only update overlay text if still showing game-over screen
+        document.getElementById('overlayText').textContent = ok
+          ? `${score} — saved to leaderboard 🏆`
+          : `${score} — offline, score saved locally`;
+      }
+      // Refresh global display
+      refreshGlobalDisplay(true);
+    });
+  } else {
+    showOverlay(titleMsg, subMsg, 'Play again');
+  }
 }
 
 function pauseGame() {
@@ -1184,10 +1566,161 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Initial state
+// ============== Username & Leaderboard UI ==============
+const greetingNameEl = document.getElementById('greetingName');
+const globalScoreEl = document.getElementById('globalScore');
+const settingsBtn = document.getElementById('settingsBtn');
+const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+const usernameModal = document.getElementById('usernameModal');
+const usernameInput = document.getElementById('usernameInput');
+const usernameInfo = document.getElementById('usernameInfo');
+const usernameSave = document.getElementById('usernameSave');
+const usernameCancel = document.getElementById('usernameCancel');
+const usernameTitle = document.getElementById('usernameTitle');
+const usernameSubtitle = document.getElementById('usernameSubtitle');
+
+const leaderboardModal = document.getElementById('leaderboardModal');
+const lbList = document.getElementById('lbList');
+const lbStatus = document.getElementById('lbStatus');
+const lbClose = document.getElementById('lbClose');
+
+function showUsernameModal(isEdit = false) {
+  if (isEdit) {
+    usernameTitle.textContent = 'Change Name';
+    usernameSubtitle.textContent = 'Update your leaderboard name';
+    usernameCancel.style.display = 'block';
+    usernameInput.value = User.get();
+  } else {
+    usernameTitle.textContent = 'Welcome';
+    usernameSubtitle.textContent = 'Pick a name for the leaderboard';
+    usernameCancel.style.display = 'none';
+    usernameInput.value = '';
+  }
+  validateUsername();
+  usernameModal.classList.add('show');
+  // Focus input after a tick so iOS keyboard opens
+  setTimeout(() => usernameInput.focus(), 50);
+}
+function hideUsernameModal() {
+  usernameModal.classList.remove('show');
+  usernameInput.blur();
+}
+
+function validateUsername() {
+  const v = usernameInput.value.trim();
+  if (v.length === 0) {
+    usernameInfo.textContent = `${User.MIN}–${User.MAX} characters`;
+    usernameInfo.classList.remove('error');
+    usernameSave.disabled = true;
+  } else if (v.length < User.MIN) {
+    usernameInfo.textContent = `${User.MIN - v.length} more character${User.MIN - v.length === 1 ? '' : 's'} needed`;
+    usernameInfo.classList.remove('error');
+    usernameSave.disabled = true;
+  } else if (!User.isValid(v)) {
+    usernameInfo.textContent = 'Letters, numbers, spaces only';
+    usernameInfo.classList.add('error');
+    usernameSave.disabled = true;
+  } else {
+    usernameInfo.textContent = `${v.length}/${User.MAX}`;
+    usernameInfo.classList.remove('error');
+    usernameSave.disabled = false;
+  }
+}
+
+usernameInput.addEventListener('input', validateUsername);
+usernameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !usernameSave.disabled) {
+    e.preventDefault();
+    usernameSave.click();
+  }
+});
+usernameSave.addEventListener('click', () => {
+  const v = usernameInput.value.trim();
+  if (!User.isValid(v)) return;
+  User.set(v);
+  greetingNameEl.textContent = User.get();
+  hideUsernameModal();
+});
+usernameCancel.addEventListener('click', hideUsernameModal);
+
+settingsBtn.addEventListener('click', () => showUsernameModal(true));
+
+// Leaderboard
+function renderLeaderboard(rows) {
+  lbList.innerHTML = '';
+  if (rows.length === 0) {
+    lbStatus.textContent = 'No scores yet — be the first!';
+    return;
+  }
+  lbStatus.textContent = '';
+  const me = User.get();
+  rows.forEach((row, i) => {
+    const li = document.createElement('li');
+    li.className = 'lb-row';
+    if (i === 0) li.classList.add('gold');
+    else if (i === 1) li.classList.add('silver');
+    else if (i === 2) li.classList.add('bronze');
+    if (row.name === me) li.classList.add('you');
+    li.innerHTML = `
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-name"></span>
+      <span class="lb-score"></span>
+    `;
+    li.querySelector('.lb-name').textContent = row.name;
+    li.querySelector('.lb-score').textContent = row.score.toLocaleString();
+    lbList.appendChild(li);
+  });
+}
+
+async function openLeaderboard() {
+  leaderboardModal.classList.add('show');
+  lbStatus.textContent = 'Loading…';
+  lbList.innerHTML = '';
+  const rows = await Leaderboard.fetchTop(10);
+  renderLeaderboard(rows);
+}
+function closeLeaderboard() {
+  leaderboardModal.classList.remove('show');
+}
+
+leaderboardBtn.addEventListener('click', openLeaderboard);
+lbClose.addEventListener('click', closeLeaderboard);
+
+// Prevent gesture handler from eating modal taps
+['touchstart','touchend','touchmove'].forEach(ev => {
+  usernameModal.addEventListener(ev, e => e.stopPropagation());
+  leaderboardModal.addEventListener(ev, e => e.stopPropagation());
+  settingsBtn.addEventListener(ev, e => e.stopPropagation());
+  leaderboardBtn.addEventListener(ev, e => e.stopPropagation());
+});
+
+// Global score display in header
+async function refreshGlobalDisplay(force = false) {
+  const rows = await Leaderboard.fetchTop(10, force);
+  if (rows.length > 0) {
+    const top = rows[0];
+    globalScoreEl.textContent = `${top.score.toLocaleString()} (${top.name})`;
+  } else {
+    globalScoreEl.textContent = '—';
+  }
+}
+
+
 grid = emptyGrid();
 draw();
 showOverlay('Tetris', 'Tap start to play', 'Start');
+
+// First-run: show username modal if no name yet
+if (User.hasName()) {
+  greetingNameEl.textContent = User.get();
+} else {
+  greetingNameEl.textContent = '—';
+  showUsernameModal(false);
+}
+
+// Kick off async global score fetch (non-blocking)
+refreshGlobalDisplay();
 
 // ============== Service Worker ==============
 if ('serviceWorker' in navigator) {
